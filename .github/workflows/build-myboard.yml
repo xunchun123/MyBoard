@@ -1,0 +1,54 @@
+# MyBoard 云打包：只打 arm64-v8a 可安装 debug 包（iQOO 13 用）
+# 手动触发：Actions → Build MyBoard debug APK → Run workflow
+name: Build MyBoard debug APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    env:
+      BUILD_ABI: arm64-v8a
+    steps:
+      - name: Checkout (no submodules yet)
+        uses: actions/checkout@v6
+        with:
+          submodules: false
+          fetch-depth: 1
+
+      - name: Checkout needed submodules only (拼音+英文所需，笔画/注音/仓颉已删)
+        run: |
+          git submodule update --init --recursive --depth 1 \
+            app/data/rime/prelude \
+            app/data/rime/luna-pinyin \
+            app/data/rime/essay \
+            app/src/main/jni/librime \
+            app/src/main/jni/OpenCC \
+            app/src/main/jni/snappy \
+            app/src/main/jni/librime-lua \
+            app/src/main/jni/librime-lua-deps \
+            app/src/main/jni/librime-octagram \
+            app/src/main/jni/librime-predict
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install CMake 3.31.6
+        run: sdkmanager --install "cmake;3.31.6"
+
+      - name: Build debug APK
+        run: make debug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: MyBoard-debug-arm64
+          path: app/build/outputs/apk/debug/*.apk
