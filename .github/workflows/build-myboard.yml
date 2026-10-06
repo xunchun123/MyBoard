@@ -1,4 +1,5 @@
-# MyBoard 云打包：只打 arm64-v8a 可安装 debug 包（iQOO 13 用）
+# MyBoard 云打包 + 云真机冒烟测试
+# 打包 arm64（真机）+ x86_64（云模拟器），打完自动在云模拟器里启动验崩溃
 # 手动触发：Actions → Build MyBoard debug APK → Run workflow
 name: Build MyBoard debug APK
 
@@ -9,7 +10,7 @@ jobs:
   build:
     runs-on: ubuntu-24.04
     env:
-      BUILD_ABI: arm64-v8a
+      BUILD_ABI: arm64-v8a,x86_64
     steps:
       - name: Checkout (no submodules yet)
         uses: actions/checkout@v6
@@ -51,7 +52,7 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: MyBoard-debug-arm64
+          name: MyBoard-debug-apks
           path: app/build/outputs/apk/debug/*.apk
 
       - name: Publish to Releases (直接下.apk用)
@@ -61,3 +62,41 @@ jobs:
           name: MyBoard 最新测试包
           body: 自动打包的测试版，下载 .apk 发到手机安装即可。
           files: app/build/outputs/apk/debug/*.apk
+
+  # 云模拟器冒烟测试：装x86_64包 → 启动主界面 → 截图 + 抓崩溃日志，全程不用碰手机
+  smoke-test:
+    needs: build
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Download APKs
+        uses: actions/download-artifact@v4
+        with:
+          name: MyBoard-debug-apks
+          path: apks
+
+      - name: Boot emulator and smoke test
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          script: |
+            APK=$(ls apks/*x86_64*.apk | head -n 1)
+            echo "Installing $APK"
+            adb install "$APK"
+            adb shell am start -n com.myboard.ime.debug/.ui.main.MainActivity
+            sleep 90
+            adb exec-out screencap -p > screen-main.png
+            adb logcat -d > logcat.txt
+            echo "===== CRASH SCAN ====="
+            grep -i -A 30 "FATAL EXCEPTION\|AndroidRuntime.*E " logcat.txt | head -n 120 || true
+            echo "===== END SCAN ====="
+
+      - name: Upload smoke test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: MyBoard-smoke-test
+          path: |
+            screen-main.png
+            logcat.txt
