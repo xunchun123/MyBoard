@@ -81,23 +81,13 @@ jobs:
           arch: x86_64
           target: google_apis
           script: |
-            echo "=== files ==="
             ls -la apks/
-            APK=$(ls apks/*.apk 2>/dev/null | grep -i "x86_64\|x86-64" | head -n 1)
-            if [ -z "$APK" ]; then
-              echo "No x86_64 APK, falling back to first APK"
-              APK=$(ls apks/*.apk 2>/dev/null | head -n 1)
-            fi
-            if [ -z "$APK" ]; then echo "NO APK FOUND"; exit 1; fi
-            echo "Installing $APK"
-            adb install "$APK"
+            APK=$(ls apks/*.apk 2>/dev/null | grep -i "x86_64" | head -n 1); if [ -z "$APK" ]; then APK=$(ls apks/*.apk 2>/dev/null | head -n 1); fi; echo "Installing $APK"; adb install "$APK"
             adb shell am start -n com.myboard.ime.debug/.ui.main.MainActivity
             sleep 90
             adb exec-out screencap -p > screen-main.png
             adb logcat -d > logcat.txt
-            echo "===== CRASH SCAN ====="
-            grep -i -A 30 "FATAL EXCEPTION\|AndroidRuntime.*E " logcat.txt | head -n 120 || true
-            echo "===== END SCAN ====="
+            echo "===== CRASH SCAN ====="; grep -i -A 30 "FATAL EXCEPTION" logcat.txt | head -n 120 || true; echo "===== END SCAN ====="
 
       - name: Upload smoke test results
         if: always()
