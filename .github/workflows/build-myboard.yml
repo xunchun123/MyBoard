@@ -52,3 +52,11 @@ jobs:
         with:
           name: MyBoard-debug-arm64
           path: app/build/outputs/apk/debug/*.apk
+
+      - name: Publish to Releases (直接下.apk用)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: myboard-latest
+          name: MyBoard 最新测试包
+          body: 自动打包的测试版，下载 .apk 发到手机安装即可。
+          files: app/build/outputs/apk/debug/*.apk
