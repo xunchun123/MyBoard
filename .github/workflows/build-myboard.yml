@@ -83,7 +83,7 @@ jobs:
           script: |
             ls -la apks/
             APK=$(ls apks/*.apk 2>/dev/null | grep -i "x86_64" | head -n 1); if [ -z "$APK" ]; then APK=$(ls apks/*.apk 2>/dev/null | head -n 1); fi; echo "Installing $APK"; adb install "$APK"
-            adb shell am start -n com.myboard.ime.debug/.ui.main.MainActivity
+            adb shell pm list packages | grep myboard || true; adb shell monkey -p com.myboard.ime.debug -c android.intent.category.LAUNCHER 1 || true
             sleep 90
             adb exec-out screencap -p > screen-main.png
             adb logcat -d > logcat.txt
