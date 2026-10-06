@@ -81,7 +81,14 @@ jobs:
           arch: x86_64
           target: google_apis
           script: |
-            APK=$(ls apks/*x86_64*.apk | head -n 1)
+            echo "=== files ==="
+            ls -la apks/
+            APK=$(ls apks/*.apk 2>/dev/null | grep -i "x86_64\|x86-64" | head -n 1)
+            if [ -z "$APK" ]; then
+              echo "No x86_64 APK, falling back to first APK"
+              APK=$(ls apks/*.apk 2>/dev/null | head -n 1)
+            fi
+            if [ -z "$APK" ]; then echo "NO APK FOUND"; exit 1; fi
             echo "Installing $APK"
             adb install "$APK"
             adb shell am start -n com.myboard.ime.debug/.ui.main.MainActivity
