@@ -38,11 +38,12 @@ jobs:
           java-version: 17
           cache: gradle
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install CMake 3.31.6
-        run: sdkmanager --install "cmake;3.31.6"
+      - name: Install CMake + NDK (用机器自带的SDK)
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          ls "$ANDROID_HOME"
+          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$PATH"
+          yes | sdkmanager --install "cmake;3.31.6" "ndk;28.0.13004108"
 
       - name: Build debug APK
         run: make debug
